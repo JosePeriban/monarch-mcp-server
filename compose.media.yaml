@@ -1,0 +1,39 @@
+# Standalone Media deployment: docker compose -f compose.media.yaml ...
+# Keep loopback binding until OAuth and tunnel connectivity have been verified.
+name: monarch-mcp
+services:
+  monarch-mcp:
+    build: .
+    image: monarch-mcp-server:${MONARCH_IMAGE_TAG:?Set MONARCH_IMAGE_TAG to the deployed commit}
+    restart: unless-stopped
+    init: true
+    env_file: .env
+    environment:
+      TRANSPORT: http
+      HOST: 0.0.0.0
+      PORT: "8000"
+      MCP_PATH: /
+      SESSION_STORE_PATH: /data/monarch-session
+      READ_ONLY: "true"
+      PUBLIC_URL: ${PUBLIC_URL:?Set the public HTTPS MCP origin}
+      OAUTH_ISSUER: ${OAUTH_ISSUER:?Set the verified OAuth issuer}
+      OAUTH_AUDIENCE: ${OAUTH_AUDIENCE:?Set the MCP resource audience}
+      OAUTH_JWKS_URI: ${OAUTH_JWKS_URI:?Set the verified issuer JWKS URI}
+    ports:
+      - "${MONARCH_BIND_IP:-127.0.0.1}:${HOST_PORT:?Choose a free host port}:8000"
+    volumes:
+      - monarch-session:/data
+    read_only: true
+    tmpfs:
+      - /tmp:size=32m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+volumes:
+  monarch-session:
