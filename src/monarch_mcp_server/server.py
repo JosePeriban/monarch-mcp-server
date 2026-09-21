@@ -83,5 +83,29 @@ from monarch_mcp_server.tools.merchants import (  # noqa: F401
     review_recurring_stream,
 )
 
+from monarch_mcp_server.tools.goals import (  # noqa: F401
+    list_accounts_compact,
+    discover_goal_graphql,
+    list_goal_options,
+    inspect_goal_input_types,
+    inspect_savings_goal_allocation_input_types,
+    list_goals_v2,
+    list_savings_goals,
+    set_savings_goal_initial_contributions,
+    sync_savings_goal_allocations,
+    update_savings_goal,
+    summarize_budget_month,
+    diagnose_budget_rollups,
+    set_savings_goal_budget_amount,
+    set_debt_paydown_budget_amount,
+    list_budget_contributions,
+    create_goals_v2,
+    associate_goal_account,
+    update_goal_account_amount,
+    update_goal_v2,
+    unarchive_goal_v2,
+    preview_savings_goal_allocations,
+)
+
 if __name__ == "__main__":
     main()

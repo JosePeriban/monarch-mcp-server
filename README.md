@@ -672,3 +672,52 @@ To update the server:
 1. Pull latest changes from repository
 2. Restart Claude Desktop or Claude Code
 3. Re-run authentication if needed: `python login_setup.py`
+
+
+## Savings Goals and contribution budgets
+
+The integrated goal tools work through both local stdio and OAuth-protected
+Streamable HTTP, using the same Monarch session as the other tools. No separate
+helper process is required.
+
+| Tools | Purpose |
+| --- | --- |
+| `list_savings_goals` | Current goals, progress, account allocations, and legacy migration IDs |
+| `list_goals_v2`, `list_goal_options` | Legacy Goal V2 records and templates |
+| `preview_savings_goal_allocations` | Read-only allocation preview, available with `READ_ONLY=true` |
+| `list_budget_contributions` | Savings-goal and debt-paydown monthly contributions |
+| `summarize_budget_month`, `diagnose_budget_rollups` | Category budget checks and fixed/flexible rollups |
+| `list_accounts_compact` | Account IDs, balances, and types for goal allocation |
+| `discover_goal_graphql`, `inspect_goal_input_types`, `inspect_savings_goal_allocation_input_types` | Read-only schema diagnostics |
+| `sync_savings_goal_allocations`, `set_savings_goal_initial_contributions` | Update current goal allocations |
+| `update_savings_goal` | Rename a current Savings Goal |
+| `set_savings_goal_budget_amount`, `set_debt_paydown_budget_amount` | Set monthly contributions |
+| `create_goals_v2`, `associate_goal_account`, `update_goal_account_amount`, `update_goal_v2`, `unarchive_goal_v2` | Legacy Goal V2 mutations |
+
+All mutation tools are hidden unless `READ_ONLY=false`. When OAuth is configured,
+they also require `monarch:write` (or `REQUIRED_WRITE_SCOPE`); HTTP requests still
+require the read scope. Read tools carry MCP read-only annotations.
+
+For allocation previews, pass an account ID and `allocations_json`, for example
+`{"Emergency fund": 500, "Travel": 100}`. Names must uniquely identify active goals.
+Omitted goals retain their allocations, and those retained amounts count toward
+the balance check. Zero removes the selected allocation when applied. Invalid,
+negative, or non-finite amounts and ambiguous names are rejected.
+`sync_savings_goal_allocations` defaults to `dry_run=true`; set it to `false` to
+apply. Its result reports `applied=false` for previews, no-ops, and returned
+mutation errors. The lower-level initial-contributions tool takes a JSON array
+of objects with `goalId`, `contributionAmount`, and optional boolean
+`overrideInitialContribution` and `useEntireBalance` fields; it does not perform
+the named allocation balance preview.
+
+Monthly contribution writes take dates in `YYYY-MM-01` format. The savings-goal
+budget tool defaults `apply_to_future=true`, matching the original helper;
+set it explicitly to `false` for a single month. Debt-paydown writes default it
+to `false`. Legacy tools operate on Goal V2 IDs, which differ from current Savings
+Goal IDs after migration. Use the matching list tool to obtain the correct IDs.
+
+These tools use Monarch's GraphQL fields from the local helper. Automated tests
+mock responses and do not prove that every legacy field is supported by every
+Monarch account. Experimental mutation-name probing and account-specific runner
+scripts are not included. No credentials, account IDs, or personal goal data are
+required in source control.
