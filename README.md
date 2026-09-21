@@ -241,8 +241,9 @@ restarts. Headless login (below) populates it on first use.
 | `READ_ONLY` | `true` | When true, mutating tools are not registered |
 | `PUBLIC_URL` | — | Public HTTPS URL (RFC 9728 metadata) |
 
-> **Leaving `OAUTH_*` blank runs the server unauthenticated** (a warning is
-> logged). Only do that for local/stdio development — never expose it publicly.
+> **HTTP startup fails when OAuth is missing or incomplete.** Configure
+> `OAUTH_ISSUER`, `OAUTH_AUDIENCE` (or `PUBLIC_URL`), and `OAUTH_JWKS_URI`
+> before starting the container. Local access without OAuth uses `TRANSPORT=stdio`.
 
 ### 3. Headless Monarch login
 
