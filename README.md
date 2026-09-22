@@ -241,9 +241,10 @@ restarts. Headless login (below) populates it on first use.
 | `READ_ONLY` | `true` | When true, mutating tools are not registered |
 | `PUBLIC_URL` | — | Public HTTPS URL (RFC 9728 metadata) |
 
-> **HTTP startup fails when OAuth is missing or incomplete.** Configure
-> `OAUTH_ISSUER`, `OAUTH_AUDIENCE` (or `PUBLIC_URL`), and `OAUTH_JWKS_URI`
-> before starting the container. Local access without OAuth uses `TRANSPORT=stdio`.
+> OAuth is optional, matching upstream. Without complete OAuth settings, HTTP
+> runs unauthenticated and logs a warning. Keep that endpoint private; the Media
+> deployment uses an authenticated OpenAI tunnel with no published Docker ports.
+> See [Media deployment](MEDIA_DEPLOY.md).
 
 ### 3. Headless Monarch login
 

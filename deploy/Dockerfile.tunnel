@@ -1,0 +1,22 @@
+FROM python:3.12-slim AS download
+ARG TUNNEL_VERSION=v0.0.14
+ARG TUNNEL_SHA256=15bd17e805cad39d412199115bb9e10a978dd35258a114cdf25dd2ae6681c7d3
+RUN TUNNEL_VERSION="$TUNNEL_VERSION" TUNNEL_SHA256="$TUNNEL_SHA256" python - <<'PY'
+import hashlib, io, os, pathlib, urllib.request, zipfile
+version = os.environ['TUNNEL_VERSION']
+url = f'https://github.com/openai/tunnel-client/releases/download/{version}/tunnel-client-{version}-linux-amd64.zip'
+data = urllib.request.urlopen(url, timeout=120).read()
+assert hashlib.sha256(data).hexdigest() == os.environ['TUNNEL_SHA256'], 'release checksum mismatch'
+with zipfile.ZipFile(io.BytesIO(data)) as archive:
+    candidates = [n for n in archive.namelist() if pathlib.PurePosixPath(n).name == 'tunnel-client']
+    assert len(candidates) == 1, archive.namelist()
+    target = pathlib.Path('/tunnel-client')
+    target.write_bytes(archive.read(candidates[0]))
+    target.chmod(0o755)
+PY
+FROM python:3.12-slim
+COPY --from=download /tunnel-client /usr/local/bin/tunnel-client
+USER 10001:10001
+ENV HOME=/tmp
+ENTRYPOINT ["tunnel-client"]
+CMD ["run"]

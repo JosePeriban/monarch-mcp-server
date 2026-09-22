@@ -1,4 +1,4 @@
-"""Remote transport must never start without authentication."""
+"""Optional upstream OAuth and private HTTP transport behavior."""
 
 from dataclasses import replace
 from importlib import import_module
@@ -25,15 +25,14 @@ def oauth_config(**changes):
 
 
 @pytest.mark.parametrize("missing", ["issuer", "audience", "jwks_uri", "all"])
-def test_http_refuses_incomplete_oauth(monkeypatch, missing):
+def test_http_allows_optional_oauth(monkeypatch, missing):
     changes = {missing: None} if missing != "all" else dict(
         issuer=None, audience=None, jwks_uri=None
     )
     monkeypatch.setattr(app_module, "config", replace(
         app_module.config, transport="http", oauth=oauth_config(**changes)
     ))
-    with pytest.raises(ValueError, match="HTTP transport requires OAuth"):
-        app_module._build_fastmcp()
+    assert app_module._build_fastmcp() is not None
 
 
 def test_stdio_remains_available_without_oauth(monkeypatch):

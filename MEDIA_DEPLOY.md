@@ -1,48 +1,62 @@
-# Media deployment
+# Media deployment through OpenAI Secure MCP Tunnel
 
-This fork uses `compose.media.yaml` for Media (`media.anaideia.dev`,
-`192.168.1.99`). `DEPLOY.md` describes the upstream author's infrastructure,
-not this installation. The initial Media service is read-only.
+Media (`media.anaideia.dev`, amd64) runs two Docker services: Monarch serves
+Streamable HTTP on a dedicated Docker network; the official OpenAI tunnel client
+connects to it and makes outbound HTTPS connections to OpenAI. Neither service
+publishes any host ports. No Cloudflare route or separate MCP OAuth provider is
+used. The server keeps upstream's optional OAuth support. Monarch Money itself
+still requires a saved Monarch session.
 
-## Configuration
+## Start the private server
 
-Keep `.env` private (mode 0600), outside Git. Required settings:
+```sh
+docker compose -f compose.media.yaml up -d --build monarch-mcp
+```
 
-- `MONARCH_IMAGE_TAG`: deployed Git commit
-- `HOST_PORT`: an unused host TCP port
-- `PUBLIC_URL` and `OAUTH_AUDIENCE`: the public HTTPS origin
-- `OAUTH_ISSUER` and `OAUTH_JWKS_URI`: verified authorization server endpoints
+The initial deployment is read-only. Session data lives in the dedicated
+`monarch-mcp_monarch-session` volume. Keep sessions and credentials out of Git,
+images and logs. `DEPLOY.md` describes the upstream author's unrelated public
+hosting setup, not this installation.
 
-The identity provider must restrict access to the owner's account and issue
-resource-specific tokens with `monarch:read`. Configure the MCP-compatible
-OAuth discovery/PKCE/client registration flow before publishing the route.
-The Monarch service validates tokens; it is not an authorization server.
+## Activate the tunnel later
 
-Use `docker compose -f compose.media.yaml config --quiet` to validate, then
-`docker compose -f compose.media.yaml up -d --build`. The host binding defaults
-to loopback. For the existing Home Assistant tunnel on another machine,
-set `MONARCH_BIND_IP=192.168.1.99` only after authentication is verified.
-Keep the router's inbound ports closed. Cloudflare Tunnel routes the chosen
-hostname to `http://192.168.1.99:<HOST_PORT>`; it does not replace OAuth.
-The tunnel is remotely managed, so its routes must be edited through the
-Cloudflare management API. Its connector token is not a management API token.
+Create a tunnel at https://platform.openai.com/settings/organization/tunnels
+and associate it with the intended ChatGPT workspace and Platform organization.
+Use a runtime API key with Tunnels Read + Use, not an admin key. Restrict who can
+use the tunnel: its callers share access to this personal Monarch session.
 
-Monarch session data is stored in the dedicated `monarch-mcp_monarch-session`
-Docker volume. Provision only the existing Monarch session, or configure
-headless login using the documented environment settings. Never include
-credentials or session files in the image, logs, Git, or command arguments.
-The image build excludes local credentials with `.dockerignore`.
+Create `.env.tunnel` beside the Compose file, with mode 0600, containing:
 
-## Verification before enabling the route
+```dotenv
+CONTROL_PLANE_TUNNEL_ID=tunnel_YOUR_ID
+CONTROL_PLANE_API_KEY=YOUR_RUNTIME_KEY
+```
 
-1. `/healthz` returns healthy.
-2. MCP requests with absent, invalid, or wrong-audience tokens fail.
-3. Protected-resource metadata identifies the expected public origin and issuer.
-4. A valid owner token can initialize MCP and list tools, including goals.
-5. Write tools are absent from the initial read-only deployment.
-6. A read-only Monarch call succeeds using the stored session.
-7. Repeat the protocol and authentication checks through the HTTPS route.
-8. Complete OAuth login in Codex and ChatGPT and verify a read-only call.
+Then run:
 
-Preserve the session volume during upgrades and rollbacks. Rebuild a prior
-reviewed commit/tag to roll back; do not use `down -v`.
+```sh
+docker compose -f compose.media.yaml --profile tunnel build tunnel-client
+docker compose -f compose.media.yaml --profile tunnel up -d
+docker compose -f compose.media.yaml logs --tail 30 tunnel-client
+```
+
+Select the tunnel in ChatGPT's developer-mode app setup. Account permissions and
+workspace association must be verified before expecting it to appear in ChatGPT
+or a supported Codex surface. The tunnel cannot connect until the ID/key exist.
+Its health/admin listener is loopback-only inside its container.
+
+The tunnel image packages official `openai/tunnel-client` release v0.0.14 for
+Linux amd64 and verifies the published SHA-256 before extraction. Check
+https://github.com/openai/tunnel-client/releases/latest when planning upgrades;
+update version and checksum together after reviewing the release.
+
+## Checks and rollback
+
+Check container health, initialize MCP, list goal tools, and verify mutations
+are absent. After tunnel activation, verify readiness and an end-to-end read
+through the target OpenAI client. Without tunnel credentials only local Docker
+checks are possible. Preserve the session volume during upgrades or rollback;
+never use `down -v`. Do not add a host port or public proxy to this unauthenticated
+HTTP service.
+
+Reference: https://developers.openai.com/api/docs/guides/secure-mcp-tunnels

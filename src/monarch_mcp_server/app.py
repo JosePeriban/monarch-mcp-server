@@ -52,10 +52,10 @@ def _build_fastmcp() -> FastMCP:
             required_scopes=[config.oauth.read_scope],
         )
     elif config.is_http:
-        raise ValueError(
-            "HTTP transport requires OAuth: set OAUTH_ISSUER, "
-            "OAUTH_AUDIENCE (or PUBLIC_URL), and OAUTH_JWKS_URI. "
-            "Use TRANSPORT=stdio for local access without OAuth."
+        logger.warning(
+            "TRANSPORT=http but OAuth is not configured (OAUTH_ISSUER/"
+            "OAUTH_AUDIENCE/OAUTH_JWKS_URI). The server will run UNAUTHENTICATED. "
+            "Set the OAuth vars before exposing this publicly."
         )
 
     return FastMCP("Monarch Money MCP Server", **kwargs)

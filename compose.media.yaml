@@ -1,13 +1,11 @@
-# Standalone Media deployment: docker compose -f compose.media.yaml ...
-# Keep loopback binding until OAuth and tunnel connectivity have been verified.
+# Media amd64 host. No host ports: HTTP is private to this dedicated network.
 name: monarch-mcp
 services:
   monarch-mcp:
     build: .
-    image: monarch-mcp-server:${MONARCH_IMAGE_TAG:?Set MONARCH_IMAGE_TAG to the deployed commit}
+    image: monarch-mcp-server:${MONARCH_IMAGE_TAG:-local}
     restart: unless-stopped
     init: true
-    env_file: .env
     environment:
       TRANSPORT: http
       HOST: 0.0.0.0
@@ -15,25 +13,48 @@ services:
       MCP_PATH: /
       SESSION_STORE_PATH: /data/monarch-session
       READ_ONLY: "true"
-      PUBLIC_URL: ${PUBLIC_URL:?Set the public HTTPS MCP origin}
-      OAUTH_ISSUER: ${OAUTH_ISSUER:?Set the verified OAuth issuer}
-      OAUTH_AUDIENCE: ${OAUTH_AUDIENCE:?Set the MCP resource audience}
-      OAUTH_JWKS_URI: ${OAUTH_JWKS_URI:?Set the verified issuer JWKS URI}
-    ports:
-      - "${MONARCH_BIND_IP:-127.0.0.1}:${HOST_PORT:?Choose a free host port}:8000"
     volumes:
       - monarch-session:/data
+    networks: [monarch-private]
     read_only: true
-    tmpfs:
-      - /tmp:size=32m,mode=1777
-    cap_drop:
-      - ALL
-    security_opt:
-      - no-new-privileges:true
+    tmpfs: ["/tmp:size=32m,mode=1777"]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
     logging:
       driver: json-file
       options:
         max-size: 10m
         max-file: "3"
+  tunnel-client:
+    profiles: [tunnel]
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.tunnel
+    image: openai-tunnel-client:v0.0.14-local
+    restart: unless-stopped
+    init: true
+    env_file:
+      - path: .env.tunnel
+        required: false
+    environment:
+      MCP_SERVER_URL: http://monarch-mcp:8000/
+      HEALTH_LISTEN_ADDR: 127.0.0.1:8080
+    depends_on:
+      monarch-mcp:
+        condition: service_healthy
+    networks: [monarch-private]
+    read_only: true
+    tmpfs: ["/tmp:size=32m,mode=1777"]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+networks:
+  monarch-private:
+    # Egress is needed for Monarch and OpenAI; no other stacks join this network.
+    driver: bridge
 volumes:
   monarch-session:
