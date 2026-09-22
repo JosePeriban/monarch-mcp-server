@@ -101,9 +101,12 @@ class SecureMonarchSession:
         if _TOKEN_FILE.is_file():
             _TOKEN_FILE.unlink()
             logger.info(f"🗑️ Token file deleted: {_TOKEN_FILE}")
-        # Remove directory if empty
-        if _TOKEN_DIR.is_dir() and not list(_TOKEN_DIR.iterdir()):
-            _TOKEN_DIR.rmdir()
+        # A configured store may be a mounted volume: retain its directory.
+        if not os.getenv("SESSION_STORE_PATH"):
+            try:
+                _TOKEN_DIR.rmdir()
+            except OSError:
+                pass  # Missing, nonempty, or not removable; token is deleted.
 
     # -- public API ----------------------------------------------------------
 
