@@ -96,3 +96,5 @@ temp/
 # Local provisioning helpers (machine-specific; reference local SSH key path)
 set-monarch-creds.bat
 set-monarch-creds.ps1
+
+.admin-api-key

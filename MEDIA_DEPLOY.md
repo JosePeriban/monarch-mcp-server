@@ -2,10 +2,17 @@
 
 Media (`media.anaideia.dev`, amd64) runs two Docker services: Monarch serves
 Streamable HTTP on a dedicated Docker network; the official OpenAI tunnel client
-connects to it and makes outbound HTTPS connections to OpenAI. Neither service
-publishes any host ports. No Cloudflare route or separate MCP OAuth provider is
+connects to it and makes outbound HTTPS connections to OpenAI. The MCP port is not published. A separate REST setup listener is published
+only on Media loopback port 8001, protected by a dedicated API key. No Cloudflare route or separate MCP OAuth provider is
 used. The server keeps upstream's optional OAuth support. Monarch Money itself
 still requires a saved Monarch session.
+
+## REST login setup
+
+See [REST_AUTH.md](REST_AUTH.md) for remote SSH forwarding and JSON requests.
+Create `.admin-api-key` before starting Compose. It must contain a random secret
+of at least 32 characters and be readable by container UID 10001. Keep it out
+of Git and images; the Compose secret mount makes it available only to Monarch.
 
 ## Start the private server
 

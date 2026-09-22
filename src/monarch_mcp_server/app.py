@@ -118,6 +118,20 @@ def main() -> None:
 def _run_http() -> None:
     """Serve the Streamable HTTP app with optional rate limiting."""
     import uvicorn
+    import os
+    import threading
+
+    # Separate listener: publishing this port never exposes unauthenticated MCP.
+    key_file = os.getenv("ADMIN_API_KEY_FILE")
+    if key_file:
+        from monarch_mcp_server.admin_api import create_admin_app
+        admin_app = create_admin_app(Path(key_file).read_text().strip())
+        admin_server = uvicorn.Server(uvicorn.Config(
+            admin_app, host=os.getenv("ADMIN_API_HOST", "127.0.0.1"),
+            port=int(os.getenv("ADMIN_API_PORT", "8001")),
+            access_log=False, proxy_headers=False,
+        ))
+        threading.Thread(target=admin_server.run, daemon=True, name="monarch-admin").start()
 
     starlette_app = mcp.streamable_http_app()
 

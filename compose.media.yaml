@@ -1,4 +1,4 @@
-# Media amd64 host. No host ports: HTTP is private to this dedicated network.
+# Media amd64 host. MCP is private; setup REST API binds only to host loopback.
 name: monarch-mcp
 services:
   monarch-mcp:
@@ -13,6 +13,12 @@ services:
       MCP_PATH: /
       SESSION_STORE_PATH: /data/monarch-session
       READ_ONLY: "true"
+      ADMIN_API_KEY_FILE: /run/secrets/monarch_admin_key
+      ADMIN_API_HOST: 0.0.0.0
+    ports:
+      - "127.0.0.1:8001:8001"
+    secrets:
+      - monarch_admin_key
     volumes:
       - monarch-session:/data
     networks: [monarch-private]
@@ -58,3 +64,7 @@ networks:
     driver: bridge
 volumes:
   monarch-session:
+
+secrets:
+  monarch_admin_key:
+    file: .admin-api-key

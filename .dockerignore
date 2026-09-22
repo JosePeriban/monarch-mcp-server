@@ -20,3 +20,5 @@ monarch_session*
 mm_session*
 tmp
 temp
+
+.admin-api-key
