@@ -5,21 +5,41 @@ It requires an independent bearer API key from `.admin-api-key` and works
 while the MCP remains read-only. It is not an OpenAI API key or Monarch token.
 The OpenAI MCP tunnel does not provide an ordinary REST URL for these endpoints.
 
-From a computer with SSH access to Media, keep this command running:
+## Access on Media today
+
+Media's SSH service currently disables TCP port forwarding. Use SSH command
+execution to submit your JSON to the REST API inside the container instead:
+
+```sh
+ssh joseperiban@media.anaideia.dev \
+  'cd "$HOME/services/monarch-mcp" && docker compose -f compose.media.yaml exec -T monarch-mcp python -m monarch_mcp_server.admin_request /auth/login' \
+  < /path/to/private-login.json
+```
+
+Use `/auth/token` for browser token import. For `/auth/status`, omit the JSON
+file redirection. The helper supplies the API key from its private file and
+forwards your body to the actual REST endpoint. Credentials travel over SSH;
+they are not command arguments. Delete the private request file after use.
+
+On this Mac mini, add `-o IdentityAgent=none -o IdentitiesOnly=yes
+-i /Users/joseperiban/.ssh/id_ed25519` to SSH to use its existing local key.
+
+## Direct HTTP clients
+
+On Media itself, the URL is `http://127.0.0.1:8001`. If an administrator enables
+SSH TCP forwarding later, you can use Postman/curl from another computer with:
 
 ```sh
 ssh -N -L 127.0.0.1:18001:127.0.0.1:8001 joseperiban@media.anaideia.dev
 ```
 
-Then send requests to `http://127.0.0.1:18001` using curl, Postman, or another
-HTTP client. SSH encrypts traffic to Media. Do not publish port 8001 to the
+Then send requests to `http://127.0.0.1:18001`. This forwarding command does
+**not** work with Media's current SSH policy. Do not publish port 8001 to the
 internet or send credentials over unencrypted LAN HTTP.
 
 On the Mac mini, the generated key is stored in this checkout's
-`.admin-api-key` (mode 0600). Copy it into your HTTP client's Bearer Token
-field. Do not paste it or Monarch credentials into chat. Administrators on
-Media can retrieve it with `docker compose -f compose.media.yaml exec -T
-monarch-mcp cat /run/secrets/monarch_admin_key` from the deployment directory.
+`.admin-api-key` (mode 0600). Use it as your HTTP client's Bearer Token.
+Do not paste the key or Monarch credentials into chat.
 
 ## Requests
 
