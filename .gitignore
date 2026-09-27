@@ -98,3 +98,5 @@ set-monarch-creds.bat
 set-monarch-creds.ps1
 
 .admin-api-key
+
+.setup-tls/

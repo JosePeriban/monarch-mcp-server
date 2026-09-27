@@ -98,3 +98,21 @@ Failed validation leaves the previous session intact. Errors are sanitized:
 rejected login/validation or another upstream failure; 503 = storage/network
 unavailable; 504 = timeout. A 502 alone does not prove a token expired.
 No access/request-body logging is enabled on the REST listener.
+
+## Home-network browser access
+
+The Mac mini can serve the same relay over HTTPS at
+`https://192.168.1.48:18443/`. It still requires the setup key. Start it with:
+
+```sh
+python3 scripts/local_setup_browser.py --bind 192.168.1.48 --port 18443 \
+  --allowed-host 192.168.1.48 --allowed-host Jose-Peribans-Mac-mini.local \
+  --tls-cert .setup-tls/cert.pem --tls-key .setup-tls/key.pem
+```
+
+The locally generated certificate includes the Mac mini IP and hostname and
+expires after 90 days. Browsers show a certificate warning until the certificate
+is trusted on that device. Private certificate keys remain untracked in
+`.setup-tls/`. Network binding refuses to start without TLS. No router port
+forwarding is configured; this URL is for the home network. Keep the relay
+process running while using the page; rerun the command after a restart.

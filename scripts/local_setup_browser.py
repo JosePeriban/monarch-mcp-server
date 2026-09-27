@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 import shlex
 import subprocess
+import ssl
 
 REMOTE = '''import sys,json,urllib.request,urllib.error
 p=json.load(sys.stdin)
@@ -22,11 +23,20 @@ FILES = {'/': ('login.html', 'text/html'), '/setup.js': ('setup.js', 'applicatio
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--port', type=int, default=18001)
+    parser.add_argument('--bind', default='127.0.0.1')
+    parser.add_argument('--allowed-host', action='append', default=[])
+    parser.add_argument('--tls-cert')
+    parser.add_argument('--tls-key')
     parser.add_argument('--ssh-host', default='joseperiban@media.anaideia.dev')
     parser.add_argument('--identity', default=str(Path.home() / '.ssh/id_ed25519'))
     args = parser.parse_args()
-    authority = f'127.0.0.1:{args.port}'
-    origin = 'http://' + authority
+    if bool(args.tls_cert) != bool(args.tls_key):
+        parser.error('Both TLS certificate and key are required')
+    if args.bind != '127.0.0.1' and not args.tls_cert:
+        parser.error('Network access requires TLS')
+    scheme = 'https' if args.tls_cert else 'http'
+    authorities = {f'{host}:{args.port}' for host in (args.allowed_host or [args.bind])}
+    origins = {scheme + '://' + host for host in authorities}
 
     class Handler(BaseHTTPRequestHandler):
         def log_message(self, *args):
@@ -42,7 +52,9 @@ def main():
 
         def dispatch(self):
             # Prevent DNS rebinding and cross-origin browser requests to the relay.
-            if self.headers.get('Host') != authority or self.headers.get('Origin', origin) != origin:
+            host = self.headers.get('Host', '')
+            origin = scheme + '://' + host
+            if host not in authorities or self.headers.get('Origin', origin) != origin:
                 return self.send(403, '{"error":"origin_rejected"}')
             if self.command == 'GET' and self.path in FILES:
                 filename, content_type = FILES[self.path]
@@ -68,8 +80,14 @@ def main():
         do_GET = dispatch
         do_POST = dispatch
 
-    print(f'Monarch setup: {origin}', flush=True)
-    ThreadingHTTPServer(('127.0.0.1', args.port), Handler).serve_forever()
+    server = ThreadingHTTPServer((args.bind, args.port), Handler)
+    if args.tls_cert:
+        context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        context.minimum_version = ssl.TLSVersion.TLSv1_2
+        context.load_cert_chain(args.tls_cert, args.tls_key)
+        server.socket = context.wrap_socket(server.socket, server_side=True)
+    print('Monarch setup: ' + ', '.join(sorted(origins)), flush=True)
+    server.serve_forever()
 
 
 if __name__ == '__main__':
