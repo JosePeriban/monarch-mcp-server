@@ -14,6 +14,17 @@ browser storage. The API still requires its bearer key for every submission.
 Use an encrypted access path (SSH or HTTPS) when accessing it remotely; do not
 expose the plain HTTP listener on the LAN or internet.
 
+## Browser access from the Mac mini
+
+Run `python3 scripts/local_setup_browser.py` from this checkout, then open
+<http://127.0.0.1:18001>. The local relay serves the form and sends API requests
+to Media over ordinary SSH commands, which work with Media's current SSH policy.
+It listens only on Mac mini loopback, validates browser Host/Origin, and requires
+the setup API key on each API request. Paste the key from `.admin-api-key` into
+the form, then enter your Monarch login. Keep the relay running while signing in.
+This localhost link works only on the machine running the relay, not on phones
+or other computers. The page on Media remains part of its persistent container.
+
 ## Access on Media today
 
 Media's SSH service currently disables TCP port forwarding. Use SSH command
