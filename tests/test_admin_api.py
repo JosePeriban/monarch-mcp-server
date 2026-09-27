@@ -88,3 +88,17 @@ async def test_validation_and_rate_limit(setup):
             await http.post('/auth/token', json={})
         assert (await http.post('/auth/token', json={'token': 't'})).status_code == 429
     store.save_authenticated_session.assert_not_called()
+
+@pytest.mark.asyncio
+async def test_browser_page_is_static_and_api_stays_protected(setup):
+    app, _, store, _, _ = setup
+    async with httpx.AsyncClient(transport=httpx.ASGITransport(app), base_url='http://test') as http:
+        for path, media in [('/', 'text/html'), ('/setup.css', 'text/css'), ('/setup.js', 'application/javascript')]:
+            r = await http.get(path)
+            assert r.status_code == 200
+            assert media in r.headers['content-type']
+            assert KEY not in r.text
+            assert r.headers['cache-control'] == 'no-store'
+            assert "frame-ancestors 'none'" in r.headers['content-security-policy']
+        assert (await http.post('/auth/login', json={'email': 'a', 'password': 'b'})).status_code == 401
+    store.save_authenticated_session.assert_not_called()

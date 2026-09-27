@@ -7,7 +7,8 @@ import time
 from monarchmoney import MonarchMoney, RequireMFAException
 from starlette.applications import Starlette
 from starlette.requests import Request
-from starlette.responses import JSONResponse
+from starlette.responses import JSONResponse, Response
+from pathlib import Path
 from starlette.routing import Route
 
 from monarch_mcp_server.client import clear_client_cache
@@ -82,7 +83,24 @@ def create_admin_app(api_key: str) -> Starlette:
             return response({'error': 'monarch_login_or_validation_failed'}, 502)
         return response({'status': 'authenticated'})
 
+    async def page(request: Request):
+        files = {'/': ('login.html', 'text/html'),
+                 '/setup.css': ('setup.css', 'text/css'),
+                 '/setup.js': ('setup.js', 'application/javascript')}
+        filename, media_type = files[request.url.path]
+        return Response((Path(__file__).parent / 'static' / filename).read_bytes(),
+                        media_type=media_type, headers={
+                            'Cache-Control': 'no-store',
+                            'Content-Security-Policy': "default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'",
+                            'X-Content-Type-Options': 'nosniff',
+                            'X-Frame-Options': 'DENY',
+                            'Referrer-Policy': 'no-referrer',
+                        })
+
     return Starlette(routes=[
+        Route('/', page, methods=['GET']),
+        Route('/setup.css', page, methods=['GET']),
+        Route('/setup.js', page, methods=['GET']),
         Route('/auth/status', handle, methods=['GET']),
         Route('/auth/login', handle, methods=['POST']),
         Route('/auth/token', handle, methods=['POST']),

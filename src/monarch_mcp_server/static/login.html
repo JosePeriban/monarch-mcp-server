@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Connect Monarch · Private setup</title><link rel="stylesheet" href="/setup.css"><script src="/setup.js" defer></script></head>
+<body><main>
+<header><div class="mark" aria-hidden="true">M</div><span>MONARCH MCP <span class="badge">PRIVATE SETUP</span></span></header>
+<section class="card">
+<p class="eyebrow">YOUR ACCOUNT, CONNECTED</p><h1>Connect Monarch</h1><p class="intro">Sign in once to let your private MCP server read your Monarch data.</p>
+<form id="login-form">
+<fieldset id="fields">
+<div id="access"><label for="api-key">Setup access key</label><input id="api-key" type="password" autocomplete="off" required placeholder="Your private setup API key"><p class="hint">This is the setup key saved on Media, not your OpenAI key.</p></div>
+<label for="method">Sign-in method</label><select id="method"><option value="password">Email and password</option><option value="token">Browser session token / SSO</option></select>
+<div id="password-fields"><label for="email">Email address</label><input id="email" type="email" autocomplete="username" required placeholder="you@example.com"><label for="password">Password</label><input id="password" type="password" autocomplete="current-password" required><div id="mfa-fields" hidden><label for="mfa">Verification code</label><input id="mfa" type="text" inputmode="numeric" autocomplete="one-time-code" placeholder="Code from your authenticator"></div></div>
+<div id="token-fields" hidden><label for="token">Monarch session token</label><input id="token" type="password" autocomplete="off" disabled><p class="hint">Sign in to <a href="https://app.monarchmoney.com/" target="_blank" rel="noopener noreferrer">Monarch</a> yourself, then copy your session token from your browser’s developer tools. Use this option for Google or SSO sign-in.</p></div>
+<button id="submit" type="submit">Connect account <span aria-hidden="true">→</span></button>
+</fieldset></form>
+<div id="status" role="status" aria-live="polite" hidden></div>
+<div id="success" hidden><div class="check" aria-hidden="true">✓</div><h2>You’re connected</h2><p>Your session is saved on Media. Your MCP tools can now use it.</p><button id="another" type="button" class="secondary">Sign in again</button></div>
+<p class="privacy">Your password and verification code are used for sign-in only. Only the validated session token is saved on Media.</p>
+</section><footer>Private connection <span aria-hidden="true">·</span> Read-only MCP tools</footer>
+</main></body></html>

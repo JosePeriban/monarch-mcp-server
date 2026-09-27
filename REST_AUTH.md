@@ -5,6 +5,15 @@ It requires an independent bearer API key from `.admin-api-key` and works
 while the MCP remains read-only. It is not an OpenAI API key or Monarch token.
 The OpenAI MCP tunnel does not provide an ordinary REST URL for these endpoints.
 
+## Browser login page
+
+The setup listener serves a browser form at `/`, with email/password, MFA,
+and browser-token options. Enter the setup API key, not an OpenAI API key.
+The page contains no embedded credentials and uses no third-party scripts or
+browser storage. The API still requires its bearer key for every submission.
+Use an encrypted access path (SSH or HTTPS) when accessing it remotely; do not
+expose the plain HTTP listener on the LAN or internet.
+
 ## Access on Media today
 
 Media's SSH service currently disables TCP port forwarding. Use SSH command
